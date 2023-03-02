@@ -1,8 +1,5 @@
-# author: hcjohn463
 #!/usr/bin/env python
 # coding: utf-8
-
-# In[1]:
 
 
 import requests
@@ -29,8 +26,7 @@ if(len(args.url) != 0):
 elif(args.random == True):
     url = av_recommand()
 else:
-    # 使用者輸入Jable網址
-    url = input('輸入jable網址:')
+    url = input('请输入jable网址:')
 
 # In[3]:
 
@@ -45,7 +41,7 @@ folderPath = os.path.join(os.getcwd(), dirName)
 
 
 # 得到 m3u8 網址
-htmlfile = cloudscraper.create_scraper(browser='firefox', delay=10).get(url)
+htmlfile = cloudscraper.create_scraper(delay=10).get(url)
 result = re.search("https://.+m3u8", htmlfile.text)
 m3u8url = result[0]
 
