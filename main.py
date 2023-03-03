@@ -27,8 +27,8 @@ elif (args.random == True):
     url = av_recommand()
 else:
     # 使用者输入Jable网址
-    url = "https://jable.tv/videos/fsdss-077/"
-    # url = input('输入jable网址:')
+    #url = "https://jable.tv/videos/fsdss-077/"
+    url = input('输入jable网址:')
 
 # 建立文件夹
 urlSplit = url.split('/')
