@@ -27,8 +27,8 @@ def scrape(ci, folder_path, download_list, urls):
                 f.write(content_ts)
                 # 输出进度
             download_list.remove(urls)
-        print('\r当前下载: {0} , 剩余 {1} 个, status code: {2}'.format(
-            urls.split('/')[-1], len(download_list), response.status_code), end='', flush=True)
+        print('\r当前下载:{0} ,余 {1} 个'.format(
+            urls.split('/')[-1], len(download_list)), end='', flush=True)
 
 
 def prepare_crawl(ci, folder_path, ts_list):
