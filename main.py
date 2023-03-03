@@ -31,7 +31,7 @@ elif args.keyword:
     if not index:
         item = random.choice(url_list)
     else:
-        item = url_list[index].url
+        item = url_list[int(index)]
     url = item.url
     title = item.title
     logger.info(f"当前下载的是:{title}")
@@ -47,11 +47,9 @@ sysinfo = platform.platform()
 if "aarch64" in sysinfo:
     folder_path = os.path.join("/sdcard/av", dir_name)
 else:
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-
     folder_path = os.path.join(os.getcwd(), dir_name)
-
+if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 # 得到 m3u8 网址
 htmlfile = cloudscraper.create_scraper(delay=10).get(url)
 result = re.search("https://.+m3u8", htmlfile.text)
