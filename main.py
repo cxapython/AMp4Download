@@ -16,26 +16,36 @@ from cover import get_cover
 from crawler import prepare_crawl
 from delete import delete_m3u8, delete_mp4
 from merge import merge_ts_file, merge_mp4_file
+from loguru import logger
 
 ssl._create_default_https_context = ssl._create_unverified_context
 parser = get_parser()
 args = parser.parse_args()
-
 if (len(args.url) != 0):
     url = args.url
-elif (args.random == True):
-    url = av_recommand()
+elif args.keyword:
+    url_list = av_recommand(args.keyword)
+    print("\n".join([f'序号:{each.index}  标题:{each.title}' for each in url_list]))
+    index = input('输入想要下载视频序号,从0开始:')
+    # 建立文件夹
+    if not index:
+        item = random.choice(url_list)
+    else:
+        item = url_list[index].url
+    url = item.url
+    title = item.title
+    logger.info(f"当前下载的是:{title}")
+
 else:
     # 使用者输入Jable网址
-    #url = "https://jable.tv/videos/fsdss-077/"
+    # url = "https://jable.tv/videos/fsdss-077/"
     url = input('输入jable网址:')
 
-# 建立文件夹
 urlSplit = url.split('/')
 dir_name = urlSplit[-2]
 sysinfo = platform.platform()
 if "aarch64" in sysinfo:
-    folder_path = os.path.join("/sdcard", dir_name)
+    folder_path = os.path.join("/sdcard/av", dir_name)
 else:
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
