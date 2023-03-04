@@ -20,6 +20,8 @@ def get_parser():
                         help="Jable TV URL to download")
     parser.add_argument("--keyword", type=str, default="",
                         help="根据关键词选择，前5页内容")
+    parser.add_argument("--count", type=int, default=50,
+                        help="展示五页内容")
 
     return parser
 

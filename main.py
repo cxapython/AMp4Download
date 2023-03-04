@@ -25,7 +25,7 @@ args = parser.parse_args()
 if (len(args.url) != 0):
     url = args.url
 elif args.keyword:
-    url_list = av_recommand(args.keyword)
+    url_list = av_recommand(args.keyword)[:args.count]
     print("\n".join([f'序号:{each.index}  标题:{each.title}' for each in url_list]))
     index = input('输入想要下载视频序号,从0开始:')
     # 建立文件夹
