@@ -17,6 +17,7 @@ from crawler import prepare_crawl
 from delete import delete_m3u8, delete_mp4
 from merge import merge_ts_file, merge_mp4_file
 from loguru import logger
+import time
 
 ssl._create_default_https_context = ssl._create_unverified_context
 parser = get_parser()
@@ -40,22 +41,23 @@ else:
     # 使用者输入Jable网址
     # url = "https://jable.tv/videos/fsdss-077/"
     url = input('输入jable网址:')
-
 urlSplit = url.split('/')
 dir_name = urlSplit[-2]
+if dir_name == "vodplay":
+    dir_name = str(int(time.time()))
 sysinfo = platform.platform()
 if "aarch64" in sysinfo:
     folder_path = os.path.join("/sdcard/av", dir_name)
 else:
     folder_path = os.path.join(os.getcwd(), dir_name)
 if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
+    os.makedirs(folder_path)
 # 得到 m3u8 网址
 htmlfile = cloudscraper.create_scraper(delay=10).get(url)
-result = re.search("https://.+m3u8", htmlfile.text)
+result = re.search("http?s.+m3u8", htmlfile.text)
 # 下载图片
 get_cover(html_file=htmlfile, folder_path=folder_path)
-m3u8url = result[0]
+m3u8url = result[0].replace("\\", "")
 m3u8urlList = m3u8url.split('/')
 m3u8urlList.pop(-1)
 download_url = '/'.join(m3u8urlList)
