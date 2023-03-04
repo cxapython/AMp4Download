@@ -37,7 +37,7 @@ def av_recommand(keyword):
     h6_tags_all = []
     keyword = convert(keyword, "zh-hant")
 
-    for i in range(1, 5):
+    for i in range(1, 6):
         try:
             url = f"https://jable.tv/search/{keyword}/?q={keyword}&sort_by=post_date&from_videos=0{i}"
             h6_tags = fetch(url)
