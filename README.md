@@ -1,6 +1,3 @@
-# JableTVDownload
- jableTV视频下载
-
 ### 使用方式
 推荐使用python3.11
  
