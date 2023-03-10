@@ -18,6 +18,11 @@ from delete import delete_m3u8, delete_mp4
 from merge import merge_ts_file, merge_mp4_file
 from loguru import logger
 import time
+from rich.console import Console
+from rich.table import Column, Table
+import re
+console = Console()
+
 
 ssl._create_default_https_context = ssl._create_unverified_context
 parser = get_parser()
@@ -25,8 +30,18 @@ args = parser.parse_args()
 if (len(args.url) != 0):
     url = args.url
 elif args.keyword:
+    table = Table(show_header=True,title=f"前{args.count}条数据展示",caption="输入序号回车")
     url_list = av_recommand(args.keyword)[:args.count]
-    print("\n".join([f'序号:{each.index}  标题:{each.title}' for each in url_list]))
+    table.add_column("序号", justify="left")
+    table.add_column("标题")
+    for each in url_list:
+        bango = re.split(r'[^a-zA-Z0-9-]+', each.title)[0]
+        new_title ="[gold1]{}[/gold1]:{}".format(bango,each.title.replace(bango,"").strip())
+        table.add_row(str(each.index),new_title)
+    table.highlight = True 
+    console.print(table)
+
+    #print("\n".join([f'序号:{each.index}  标题:{each.title}' for each in url_list]))
     index = input('输入想要下载视频序号,从0开始:')
     # 建立文件夹
     if not index:
@@ -63,7 +78,10 @@ m3u8urlList.pop(-1)
 download_url = '/'.join(m3u8urlList)
 
 #  m3u8 file 到文件
-m3u8file = os.path.join(folder_path, dir_name + '.m3u8')
+temp_path=os.path.join(folder_path,f"{dir_name}_temp")
+if not os.path.exists(temp_path):
+    os.makedirs(temp_path)
+m3u8file = os.path.join(temp_path, dir_name + '.m3u8')
 urllib.request.urlretrieve(m3u8url, m3u8file)
 
 # In[5]:
@@ -105,23 +123,23 @@ else:
 
 
 # 删除m3u8 file
-delete_m3u8(folder_path)
+delete_m3u8(temp_path)
 
 # In[8]:
 
 
 # 下载ts片段到文件夹
-prepare_crawl(ci, folder_path, ts_list[:])
+prepare_crawl(ci, temp_path, ts_list[:])
 
 # In[9]:
 # 生成ts文件列表，ffmpeg使用的
-ts_text_path = merge_ts_file(folder_path, ts_list[:])
+ts_text_path = merge_ts_file(temp_path, ts_list[:])
 
 # 合成mp4
-merge_mp4_file(folder_path, ts_text_path)
+merge_mp4_file(temp_path,folder_path,ts_text_path)
 
 # In[10]:
 
 
 # 删除子mp4
-delete_mp4(folder_path)
+delete_mp4(temp_path)
