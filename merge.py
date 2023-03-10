@@ -19,7 +19,7 @@ def merge_ts_file(folder_path, ts_list):
 
 
 # folder_path, ts_text_path
-def merge_mp4_file(folder_path, ts_text_path):
+def merge_mp4_file(temp_path,folder_path, ts_text_path):
     mp4_file_name =f"{os.path.basename(folder_path)}.mp4"
     os.chdir(folder_path)
     retval = os.getcwd()
@@ -37,3 +37,9 @@ def merge_mp4_file(folder_path, ts_text_path):
         logger.error(f"{mp4_file_name},转换失败")
     except Exception:
         logger.error("异常退出")
+if __name__=="__main__":
+    from delete import delete_mp4
+    ff="/sdcard/av/lulu-184"
+    ts="1677847845_merge_file.txt"
+    merge_mp4_file(ff,ts)
+    delete_mp4(ff)
