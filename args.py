@@ -18,9 +18,13 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Jable TV Downloader")
     parser.add_argument("--url", type=str, default="",
                         help="Jable TV URL to download")
+    parser.add_argument("--hot", type=int,
+                        help="本周最热，前5页内容")
+    parser.add_argument("--new", type=int,
+                        help="最新发布，前5页内容")
     parser.add_argument("--keyword", type=str, default="",
                         help="根据关键词选择，前5页内容")
-    parser.add_argument("--count", type=int, default=50,
+    parser.add_argument("--count", type=int, default=24,
                         help="展示五页内容")
 
     return parser
@@ -34,14 +38,22 @@ def fetch(url):
     return h6_tags
 
 
-def av_recommand(keyword):
+def av_recommand(args):
     av_list = []
     h6_tags_all = []
-    keyword = convert(keyword, "zh-hant")
-
-    for i in range(1, 6):
+    keyword=None
+    if args.keyword:
+        keyword = convert(args.keyword, "zh-hant")
+    index = int(args.count/24)+1
+    for i in range(1, index):
+        #一页24
         try:
-            url = f"https://jable.tv/search/{keyword}/?q={keyword}&sort_by=post_date&from_videos=0{i}"
+            if keyword:
+                url = f"https://jable.tv/search/{keyword}/?q={keyword}&sort_by=post_date&from_videos=0{i}"
+            elif args.new:
+                url =f"https://jable.tv/new-release/?sort_by=release_year&from=0{i}"
+            elif args.hot:
+                url = f"https://jable.tv/hot/?sort_by=video_viewed_week&from=0{i}"
             h6_tags = fetch(url)
             h6_tags_all.extend(h6_tags)
         except Exception:
@@ -51,4 +63,4 @@ def av_recommand(keyword):
         url = each.next.attrs.get("href")
         title = each.text
         av_list.append(FileInfo(index=index, title=title, url=url))
-    return av_list
+    return av_list[:args.count]
