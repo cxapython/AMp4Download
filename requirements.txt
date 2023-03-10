@@ -5,3 +5,4 @@ pycryptodome==3.17
 cloudscraper==1.2.58
 loguru
 zhconv
+rich
