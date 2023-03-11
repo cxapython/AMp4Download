@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import random
-import re
-from zhconv import convert
 
 import requests
 from bs4 import BeautifulSoup
+from zhconv import convert
 
 from fileinfo import FileInfo
 
@@ -41,17 +39,19 @@ def fetch(url):
 def av_recommand(args):
     av_list = []
     h6_tags_all = []
-    keyword=None
+    keyword = None
     if args.keyword:
         keyword = convert(args.keyword, "zh-hant")
-    index = int(args.count/24)+1
+    index = int(args.count / 24) + 1
+    if index == 1:
+        index += 1
     for i in range(1, index):
-        #一页24
+        # 一页24
         try:
             if keyword:
                 url = f"https://jable.tv/search/{keyword}/?q={keyword}&sort_by=post_date&from_videos=0{i}"
             elif args.new:
-                url =f"https://jable.tv/new-release/?sort_by=release_year&from=0{i}"
+                url = f"https://jable.tv/new-release/?sort_by=release_year&from=0{i}"
             elif args.hot:
                 url = f"https://jable.tv/hot/?sort_by=video_viewed_week&from=0{i}"
             h6_tags = fetch(url)

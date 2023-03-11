@@ -1,26 +1,28 @@
 #!/usr/bin/env python
 # coding: utf-8
-import os
 import platform
+import random
+import re
 import ssl
+import sys
+import time
 import urllib.request
+from pathlib import Path
 
 import cloudscraper
 import m3u8
 from Crypto.Cipher import AES
+from rich import print
+from rich.console import Console
+from rich.table import Table
 
 from args import *
 from config import headers
 from cover import get_cover
 from crawler import prepare_crawl
-from delete import  delete_mp4
+from delete import delete_mp4
 from merge import merge_ts_file, merge_mp4_file
-import time
-from rich.console import Console
-from rich import print
-from rich.table import Table
-import re
-import sys
+from lxml import html
 console = Console()
 ssl._create_default_https_context = ssl._create_unverified_context
 parser = get_parser()
@@ -32,18 +34,19 @@ def run(url_list=None, target_name=None):
     if url_list is None:
         url_list = []
     # print("\n".join([f'序号:{each.index}  标题:{each.title}' for each in url_list]))
+    title = str(time.time())
     if args.url.endswith(".m3u8"):
         item = args.url
-        arr =  item.split("###")
+        arr = item.split("###")
         title = arr[0]
-        m3u8_url =arr[-1]
-        m3u8file = target_name.replace(".tmp", ".m3u8")
-        dir_name = os.path.basename(target_name).replace(".tmp", "")
-        temp_path = os.path.dirname(m3u8file)
+        m3u8_url = arr[-1]
+        m3u8file = Path(str(target_name).replace(".tmp", ".m3u8"))
+        dir_name = target_name.parents[1].name
+        temp_path = m3u8file.parent
         if "aarch64" in sysinfo:
-            folder_path = os.path.join("/sdcard/av", dir_name)
+            folder_path = Path("/sdcard/av") / dir_name
         else:
-            folder_path = os.path.join(os.getcwd(), dir_name)
+            folder_path = Path.cwd() / dir_name
         m3u8urlList = m3u8_url.split('/')
         m3u8urlList.pop(-1)
         download_url = '/'.join(m3u8urlList)
@@ -51,8 +54,6 @@ def run(url_list=None, target_name=None):
     else:
         if args.url:
             url = args.url
-            title = ""
-
         else:
             index = console.input('输入想要下载视频序号,从0开始,输入q退出:')
             if index == "q":
@@ -70,22 +71,32 @@ def run(url_list=None, target_name=None):
         if dir_name == "vodplay":
             dir_name = str(int(time.time()))
         if "aarch64" in sysinfo:
-            folder_path = os.path.join("/sdcard/av", dir_name)
+            folder_path = Path("/sdcard/av") / dir_name
         else:
-            folder_path = os.path.join(os.getcwd(), dir_name)
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+            folder_path = Path.cwd() / dir_name
+        if not folder_path.exists():
+            folder_path.mkdir()
         # 得到 m3u8 网址
         resp = None
         for i in range(5):
-            resp = cloudscraper.create_scraper(delay=10).get(url,headers=headers)
-            if resp.status_code==200:
-                break
+            try:
+                resp = cloudscraper.create_scraper(delay=10).get(url, headers=headers, timeout=20)
+                if resp.status_code == 200:
+                    break
+            except Exception:
+                resp = requests.get(url, headers=headers, timeout=20, verify=False)
+                if resp.status_code == 200:
+                    break
         if not resp:
+            print("网址有问题请求失败请验证")
             sys.exit()
-        result = re.search("http?s.+m3u8", resp.text)
+        result = re.findall("http?s.+\.m3u8", resp.text)
         # 下载图片
-        title=re.findall("<meta property=\"og:title\" content=\"(.*?)\"",resp.text)[0]
+        arr = re.findall("<meta property=\"og:title\" content=\"(.*?)\"", resp.text)
+        if len(arr)==0:
+             arr =re.findall("<title>(.*?)</title>", resp.text)
+        if len(arr)>0:
+            title = arr[0]
         console.log(f"当前下载的是:{title or dir_name}")
         get_cover(html_file=resp, folder_path=folder_path)
         m3u8url = result[0].replace("\\", "")
@@ -94,24 +105,23 @@ def run(url_list=None, target_name=None):
         download_url = '/'.join(m3u8urlList)
 
         #  m3u8 file 到文件
-        temp_path = os.path.join(folder_path, f"{dir_name}_temp")
-        if not os.path.exists(temp_path):
-            os.makedirs(temp_path)
-        m3u8file = os.path.join(temp_path, dir_name + '.m3u8')
-        tmp_file = os.path.join(temp_path, f"{dir_name}.tmp")
-        with open(tmp_file, "w") as fs:
-            fs.write(f"{title}###{m3u8url}")
+        temp_path = folder_path / f"{dir_name}_temp"
+        if not temp_path.exists():
+            temp_path.mkdir()
+        m3u8file = temp_path / f'{dir_name}.m3u8'
+        tmp_file = temp_path / f"{dir_name}.tmp"
+        tmp_file.write_text(f"{title}###{m3u8url}")
         for i in range(5):
             try:
                 urllib.request.urlretrieve(m3u8url, m3u8file)
                 break
             except Exception:
-               pass
+                pass
 
     # In[5]:
 
     # 得到 m3u8 file里的 URI和 IV
-    m3u8obj = m3u8.load(m3u8file)
+    m3u8obj = m3u8.load(str(m3u8file))
     m3u8_uri = ''
     m3u8iv = ''
 
@@ -165,6 +175,8 @@ def run(url_list=None, target_name=None):
 
 
 def show_data(url_list):
+    if not url_list:
+        return
     table = Table(show_header=True, title=f"前{args.count}条数据展示", caption="输入序号回车")
     table.add_column("序号", justify="left")
     table.add_column("标题")
@@ -179,22 +191,21 @@ def show_data(url_list):
 
 def check_temp_file():
     if "aarch64" in sysinfo:
-        folder_path = "/sdcard/av"
+        folder_path = Path("/sdcard/av")
     else:
-        folder_path = os.path.dirname(__file__)
+        folder_path = Path.cwd()
     continue_map = {}
-    for each_item in os.listdir(folder_path):
+    for each_item in folder_path.iterdir():
         # root 表示当前正在访问的文件夹路径
         # dirs 表示该文件夹下的子目录名list
         # files 表示该文件夹下的文件list
         # 遍历文件
-        if os.path.isdir(each_item) and "-" in each_item:
-            temp_path = os.path.join(os.path.join(folder_path, each_item), f"{each_item}_temp")
-            temp_file = os.path.join(temp_path, f"{each_item}.tmp")
-            if os.path.exists(temp_file):
-                with open(temp_file, "r") as fs:
-                    m3u8_link = fs.read()
-                    continue_map[temp_file] = m3u8_link
+        if each_item.is_dir() and "-" in each_item.name:
+            temp_path = each_item / f"{each_item.name}_temp"
+            temp_file = temp_path / f"{each_item.name}.tmp"
+            if temp_file.exists():
+                m3u8_link = temp_file.read_text()
+                continue_map[temp_file] = m3u8_link
     return continue_map
 
 
@@ -207,15 +218,15 @@ if __name__ == '__main__':
             name_list.append(name)
 
     target_name = ""
-    c_result="n"
+    c_result = "n"
     if name_list:
         c_result = console.input("检测到上次有未继续下载的视频是否继续，Y or N:\n").lower()
-    if c_result=="y" or not c_result.strip():
+    if c_result == "y" or not c_result.strip():
         if len(name_list) == 1:
             target_name = name_list[0]
             url = continue_item[target_name]
         else:
-            print("name_list",name_list)
+            print("name_list", name_list)
             c_index = console.input('输入想要继续下载的序号,从0开始:')
             target_name = name_list[int(c_index)]
             url = continue_item[target_name]
@@ -229,7 +240,7 @@ if __name__ == '__main__':
         show_data(url_list)
     while True:
         run(url_list=url_list, target_name=target_name)
-        if len(url_list)>0:
+        if len(url_list) > 0:
             result = console.input("是否需要继续下载,退出请输入q")
             if result == "q":
                 break

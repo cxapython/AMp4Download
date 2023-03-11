@@ -1,18 +1,17 @@
 import concurrent.futures
-import os
 import time
 from functools import partial
 
 import requests
-
-from config import headers
 from tqdm import tqdm
 
+from config import headers
+
+
 def scrape(ci, folder_path, download_list, urls):
-    os.path.split(urls)
     file_name = urls.split('/')[-1][0:-3]
-    save_name = os.path.join(folder_path, file_name + ".ts")
-    if os.path.exists(save_name):
+    save_name = folder_path / f"{file_name}.ts"
+    if save_name.exists():
         # 跳过已经下载
         # print('当前目标: {0} 已下载, 故跳过...剩余 {1} 个'.format(
         #     urls.split('/')[-1], len(download_list)))
@@ -25,9 +24,9 @@ def scrape(ci, folder_path, download_list, urls):
                     content_ts = response.content
                     if ci:
                         content_ts = ci.decrypt(content_ts)  # 解碼
-                    with open(save_name, 'ab') as f:
-                        f.write(content_ts)
-                        # 输出进度
+                    with save_name.open("ab") as fs:
+                        fs.write(content_ts)
+
                     download_list.remove(urls)
                     break
             except Exception:
@@ -51,9 +50,9 @@ def prepare_crawl(ci, folder_path, ts_list):
 def start_crawl(ci, folder_path, download_list):
     # 同時建立及啟用 20 個執行緒
     round = 0
-    while (download_list != []):
+    while len(download_list) > 0:
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-            list(tqdm(executor.map(partial(scrape, ci, folder_path,
-                                 download_list), download_list),total = len(download_list)))
+            list(tqdm(executor.map(partial(scrape, ci, folder_path, download_list), download_list),
+                      total=len(download_list)))
         round += 1
         print(f', round {round}')
